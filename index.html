@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ナンセンスバンド名ジェネレータ</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { background: #0a0a0f; }
+  .glitch { position: relative; }
+  .glitch::before, .glitch::after {
+    content: attr(data-text);
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  }
+  .glitch::before { color: #f0f; clip: rect(0,900px,0,0); animation: glitch1 2s infinite linear; }
+  .glitch::after { color: #0ff; clip: rect(0,900px,0,0); animation: glitch2 2s infinite linear; }
+  @keyframes glitch1 {
+    0%,100%{clip:rect(0,9999px,0,0)}
+    10%{clip:rect(60px,9999px,80px,0);transform:translate(-2px)}
+    20%{clip:rect(20px,9999px,40px,0);transform:translate(2px)}
+    30%{clip:rect(0,9999px,0,0)}
+  }
+  @keyframes glitch2 {
+    0%,100%{clip:rect(0,9999px,0,0)}
+    15%{clip:rect(80px,9999px,100px,0);transform:translate(2px)}
+    25%{clip:rect(10px,9999px,30px,0);transform:translate(-2px)}
+    35%{clip:rect(0,9999px,0,0)}
+  }
+  .card-hover { transition: transform 0.2s, box-shadow 0.2s; }
+  .card-hover:hover { transform: translateY(-4px); }
+  .album-art { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); }
+  .track-item { border-left: 3px solid; }
+  .genre-btn.active { opacity: 1; transform: scale(1.05); }
+  .genre-btn { opacity: 0.6; transition: all 0.2s; }
+</style>
+</head>
+<body class="min-h-screen text-white font-mono">
+
+<div class="max-w-4xl mx-auto px-4 py-8">
+  <div class="text-center mb-10">
+    <h1 class="text-4xl font-black mb-2 glitch text-white" data-text="NONSENSE BAND NAME">NONSENSE BAND NAME</h1>
+    <p class="text-gray-400 text-sm">ナンセンスバンド名ジェネレータ</p>
+  </div>
+
+  <div class="flex flex-wrap gap-3 justify-center mb-8">
+    <button onclick="setGenre('indie')" id="btn-indie" class="genre-btn active px-5 py-2 rounded-full text-sm font-bold border border-purple-500 text-purple-300" aria-label="インディーバンド">🎸 インディー</button>
+    <button onclick="setGenre('metal')" id="btn-metal" class="genre-btn px-5 py-2 rounded-full text-sm font-bold border border-red-500 text-red-300" aria-label="メタルバンド">🤘 メタル</button>
+    <button onclick="setGenre('idol')" id="btn-idol" class="genre-btn px-5 py-2 rounded-full text-sm font-bold border border-pink-500 text-pink-300" aria-label="アイドルグループ">✨ アイドル</button>
+    <button onclick="setGenre('classic')" id="btn-classic" class="genre-btn px-5 py-2 rounded-full text-sm font-bold border border-yellow-500 text-yellow-300" aria-label="クラシック系">🎼 クラシック</button>
+  </div>
+
+  <div class="text-center mb-8">
+    <button onclick="generate()" id="gen-btn" class="px-10 py-4 bg-white text-black font-black text-xl rounded-none hover:bg-gray-200 active:scale-95 transition-all focus:outline-none focus:ring-4 focus:ring-white focus:ring-offset-2 focus:ring-offset-black" aria-label="バンド名を生成する">
+      ⚡ GENERATE
+    </button>
+  </div>
+
+  <div id="result-area" class="hidden">
+    <div class="border border-gray-700 p-6 mb-6 album-art rounded-sm card-hover">
+      <div class="flex flex-col md:flex-row gap-6">
+        <div id="album-visual" class="w-full md:w-48 h-48 flex-shrink-0 flex items-center justify-center rounded-sm relative overflow-hidden">
+        </div>
+        <div class="flex-1">
+          <p class="text-xs text-gray-400 mb-1" id="genre-label"></p>
+          <h2 class="text-3xl font-black mb-1 leading-tight" id="band-name-display"></h2>
+          <p class="text-lg text-gray-300 mb-1 italic" id="album-name-display"></p>
+          <p class="text-xs text-gray-500 mb-4" id="label-display"></p>
+          <div id="track-list" class="space-y-1"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="text-center">
+      <button onclick="saveToHistory()" class="px-6 py-2 border border-gray-600 text-gray-300 text-sm hover:border-white hover:text-white transition-all focus:outline-none focus:ring-2 focus:ring-white mr-3">
+        💾 保存
+      </button>
+      <button onclick="generate()" class="px-6 py-2 bg-gray-800 text-white text-sm hover:bg-gray-700 transition-all focus:outline-none focus:ring-2 focus:ring-white">
+        🔄 もう一度
+      </button>
+    </div>
+  </div>
+
+  <div id="history-area" class="mt-10 hidden">
+    <h3 class="text-sm font-bold text-gray-400 mb-3 tracking-widest">— SAVED BANDS —</h3>
+    <div id="history-list" class="space-y-2"></div>
+    <button onclick="clearHistory()" class="mt-4 text-xs text-gray-600 hover:text-gray-400 transition-all focus:outline-none focus:ring-1 focus:ring-gray-400">履歴を消去</button>
+  </div>
+</div>
+
+<script>
+const DATA = {
+  indie: {
+    adj: ["眠れない","錆びた","透明な","曖昧な","電気的な","柔らかい","忘れられた","奇妙な","空洞の","不思議な","霞がかった","滲む","朧げな","ぼんやりした","静かな"],
+    noun: ["水族館","自動販売機","テレビ塔","カーテン","自転車置き場","屋上","工場","踏切","ガスタンク","地下道","押し入れ","電柱","団地","ベランダ","給水塔"],
+    albums: ["午前3時の","僕らの","誰かの","忘れた頃の","小さな","曖昧な","灰色の","静かな","錆びた","透明な"],
+    albumNouns: ["記憶","風景","青春","ラジオ","蛍光灯","自転車","屋上","夕暮れ","朝焼け","終電"],
+    labels: ["Foggy Basement Records","Shimmer Lane Music","Rust & Dew","Overnight Tape Collective"],
+    color1: "#7c3aed", color2: "#1e1b4b",
+    icon: "🎸"
+  },
+  metal: {
+    adj: ["血塗られた","冥界の","鋼鉄の","永遠の","地獄の","呪われた","深淵なる","腐敗した","不滅の","闇に潜む","轟く","禍々しき","滅びゆく","怒れる","恐怖の"],
+    noun: ["ドラゴン","骸骨","深淵","混沌","黙示録","血盟","魔王","廃墟","処刑台","骨剣","冥府","瘴気","鬼火","悪夢","魔術師"],
+    albums: ["ライズ・オブ・","デス・","ブラッド・","ドーン・オブ・","フォール・オブ・","サーモン・オブ・","アポカリプス・","ブレイク・","リターン・オブ・","ナイト・オブ・"],
+    albumNouns: ["デストラクション","カオス","ダークネス","ドゥーム","アビス","ヘル","テラー","ラース","ヴォイド","フィアー"],
+    labels: ["Infernal Blast Records","Nuclear Forge","Chaos Throne Metal","Abyss Descent Label"],
+    color1: "#7f1d1d", color2: "#0a0a0a",
+    icon: "🤘"
+  },
+  idol: {
+    adj: ["キラキラ","ふわふわ","ドキドキ","きゅんきゅん","虹色の","お星様の","夢見る","はちみつ","ぽわぽわ","さらさら","ぴかぴか","つるつる","わくわく","ふりふり","ときめき"],
+    noun: ["プリンセス","ユニコーン","マカロン","クレープ","ティアラ","リボン","バブル","クローバー","スパンコール","ラメ","ハート","星屑","羽根","ステッキ","ウィンク"],
+    albums: ["ハッピー★","ドリーミー","ラブ♡","サニー","ピカピカ","キュート！","スペシャル","ホリデー","マジカル","ラッキー"],
+    albumNouns: ["デイズ","タイム","メモリー","ミラクル","ワールド","ライフ","ジャーニー","ドリーム","スター","ランド"],
+    labels: ["Sparkle Fantasy Music","Candy Cloud Entertainment","Rainbow Prism Label","Glitter Pop Factory"],
+    color1: "#db2777", color2: "#831843",
+    icon: "✨"
+  },
+  classic: {
+    adj: ["荘厳なる","悲哀の","黄昏の","永遠なる","神秘の","崇高な","哀愁漂う","壮大な","微妙なる","静謐の","深遠なる","調和の","超然たる","瞑想的","凛とした"],
+    noun: ["弦楽四重奏","管弦楽団","ソナタ","室内楽","フィルハーモニー","交響詩","序曲","組曲","協奏曲","カンタータ","バラード","プレリュード","即興曲","夜想曲","狂詩曲"],
+    albums: ["第一番・","組曲・","序曲・","変奏曲・","幻想曲・","舟歌・","メヌエット・","即興曲・","バガテル・","ノクターン・"],
+    albumNouns: ["夢幻","悲劇","喜劇","牧歌","田園","英雄","運命","自然","宇宙","時間"],
+    labels: ["Prestige Philharmonic","Grand Opus Publishing","Ethereal Strings Music","Noble Bow Recordings"],
+    color1: "#b45309", color2: "#1c1917",
+    icon: "🎼"
+  }
+};
+
+let currentGenre = 'indie';
+let currentBand = null;
+
+function escapeHTML(str) {
+  const d = document.createElement('div');
+  d.appendChild(document.createTextNode(str));
+  return d.innerHTML;
+}
+
+function setGenre(g) {
+  currentGenre = g;
+  ['indie','metal','idol','classic'].forEach(x => {
+    document.getElementById('btn-' + x).classList.toggle('active', x === g);
+  });
+}
+
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+function generate() {
+  const d = DATA[currentGenre];
+  const adj = pick(d.adj);
+  const noun = pick(d.noun);
+  const bandName = adj + noun;
+  const albumPrefix = pick(d.albums);
+  const albumSuffix = pick(d.albumNouns);
+  const albumName = albumPrefix + albumSuffix;
+  const label = pick(d.labels);
+
+  const tracks = generateTracks(d.icon);
+
+  currentBand = { genre: currentGenre, bandName, albumName, label, tracks };
+
+  renderResult(d, bandName, albumName, label, tracks, adj, noun);
+  document.getElementById('result-area').classList.remove('hidden');
+}
+
+function generateTracks(icon) {
+  const prefixes = ["intro","interlude","outro","opus","track","side"];
+  const nums = ["I","II","III","IV","V","VI","VII"];
+  const moods = ["(live ver.)","(demo)","(reprise)","(remix)","(acoustic)",""];
+  const count = 5 + Math.floor(Math.random() * 5);
+  const tracks = [];
+  for (let i = 0; i < count; i++) {
+    const mood = pick(moods);
+    tracks.push((i+1) + ". " + pick(prefixes) + " " + pick(nums) + " " + mood);
+  }
+  return tracks;
+}
+
+function renderResult(d, bandName, albumName, label, tracks, adj, noun) {
+  const genreNames = { indie:"インディー", metal:"メタル", idol:"アイドル", classic:"クラシック" };
+
+  document.getElementById('genre-label').textContent = genreNames[currentGenre] + " " + d.icon;
+  document.getElementById('band-name-display').textContent = bandName;
+  document.getElementById('album-name-display').textContent = '「' + albumName + '」';
+  document.getElementById('label-display').textContent = label;
+
+  const albumVisual = document.getElementById('album-visual');
+  albumVisual.style.background = `linear-gradient(135deg, ${d.color1}, ${d.color2})`;
+  albumVisual.innerHTML = '';
+  const textEl = document.createElement('div');
+  textEl.className = 'text-center p-3';
+  const nameEl = document.createElement('div');
+  nameEl.className = 'font-black text-sm leading-tight mb-2';
+  nameEl.textContent = bandName;
+  const iconEl = document.createElement('div');
+  iconEl.className = 'text-3xl';
+  iconEl.textContent = d.icon;
+  textEl.appendChild(nameEl);
+  textEl.appendChild(iconEl);
+  albumVisual.appendChild(textEl);
+
+  const trackList = document.getElementById('track-list');
+  trackList.innerHTML = '';
+  tracks.forEach((t, i) => {
+    const el = document.createElement('div');
+    el.className = 'track-item pl-3 py-0.5 text-xs text-gray-400';
+    el.style.borderColor = d.color1;
+    el.textContent = t;
+    trackList.appendChild(el);
+  });
+}
+
+function saveToHistory() {
+  if (!currentBand) return;
+  const history = JSON.parse(localStorage.getItem('band-history') || '[]');
+  history.unshift({ ...currentBand, savedAt: new Date().toISOString() });
+  if (history.length > 20) history.pop();
+  localStorage.setItem('band-history', JSON.stringify(history));
+  renderHistory();
+}
+
+function renderHistory() {
+  const history = JSON.parse(localStorage.getItem('band-history') || '[]');
+  const area = document.getElementById('history-area');
+  const list = document.getElementById('history-list');
+  if (history.length === 0) { area.classList.add('hidden'); return; }
+  area.classList.remove('hidden');
+  list.innerHTML = '';
+  history.forEach(item => {
+    const el = document.createElement('div');
+    el.className = 'flex items-center gap-3 text-sm border border-gray-800 px-4 py-2 rounded-sm';
+    const icon = document.createElement('span');
+    icon.textContent = DATA[item.genre]?.icon || '🎵';
+    const name = document.createElement('span');
+    name.className = 'font-bold';
+    name.textContent = item.bandName;
+    const album = document.createElement('span');
+    album.className = 'text-gray-500 text-xs';
+    album.textContent = '「' + item.albumName + '」';
+    el.appendChild(icon);
+    el.appendChild(name);
+    el.appendChild(album);
+    list.appendChild(el);
+  });
+}
+
+function clearHistory() {
+  localStorage.removeItem('band-history');
+  renderHistory();
+}
+
+renderHistory();
+generate();
+</script>
+</body>
+</html>
